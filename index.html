@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NIFTY Pro Terminal - Option Chain & Candlestick Charts</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-theme">
+    <!-- Main App Container -->
+    <div id="app" class="terminal-container">
+        
+        <!-- TOP HEADER BAR -->
+        <header class="terminal-header">
+            <div class="header-left">
+                <div class="brand-logo">
+                    <i class="fa-solid fa-chart-line text-accent"></i>
+                    <span class="brand-name">NIFTY<span class="brand-badge">PRO</span> TERMINAL</span>
+                </div>
+                
+                <!-- TICKER BADGES & ASSET SELECTOR -->
+                <div class="market-tickers">
+                    <div class="asset-selector-group" style="display:flex; align-items:center; background:var(--bg-card); padding:4px 10px; border-radius:6px; border:1px solid var(--border-color); margin-right:12px; position:relative;">
+                        <i class="fa-solid fa-magnifying-glass" style="color:var(--accent-blue); margin-right:8px;"></i>
+                        <input type="text" id="stockSearchInput" placeholder="Search 9,700+ NSE Stocks..." style="background:transparent; border:none; color:#fff; font-weight:600; font-size:13px; outline:none; width:170px;" autocomplete="off">
+                        
+                        <select id="assetSelect" class="styled-select" style="background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff; font-weight:700; font-size:13px; cursor:pointer; margin-left:6px; padding:2px 6px;">
+                            <optgroup label="NSE INDICES">
+                                <option value="NIFTY" selected>NIFTY 50</option>
+                                <option value="BANKNIFTY">BANKNIFTY</option>
+                                <option value="FINNIFTY">FINNIFTY</option>
+                                <option value="MIDCPNIFTY">MIDCP NIFTY</option>
+                            </optgroup>
+                            <optgroup label="POPULAR F&O STOCKS">
+                                <option value="RELIANCE">RELIANCE</option>
+                                <option value="TCS">TCS</option>
+                                <option value="HDFCBANK">HDFCBANK</option>
+                                <option value="INFY">INFY</option>
+                                <option value="ICICIBANK">ICICIBANK</option>
+                                <option value="SBIN">SBIN</option>
+                                <option value="TATAMOTORS">TATAMOTORS</option>
+                                <option value="BHARTIARTL">BHARTIARTL</option>
+                            </optgroup>
+                        </select>
+
+                        <!-- SEARCH RESULTS POPUP -->
+                        <div id="stockSearchResults" class="search-popup hidden" style="position:absolute; top:110%; left:0; width:320px; max-height:280px; overflow-y:auto; background:#1e222d; border:1px solid rgba(255,255,255,0.15); border-radius:6px; z-index:9999; box-shadow:0 8px 24px rgba(0,0,0,0.6);"></div>
+                    </div>
+
+                    <div class="ticker-card spot-card" id="niftySpotCard">
+                        <span class="ticker-label" id="spotCardLabel">NIFTY 50 SPOT</span>
+                        <div class="ticker-value-group">
+                            <span class="ticker-price" id="niftySpotPrice">24,525.80</span>
+                            <span class="ticker-change positive" id="niftySpotChange">+142.30 (+0.58%)</span>
+                        </div>
+                    </div>
+
+                    <div class="ticker-card mini-card">
+                        <span class="ticker-label">INDIA VIX</span>
+                        <span class="ticker-val" id="indiaVix">12.65 <small class="negative">-2.4%</small></span>
+                    </div>
+
+                    <div class="ticker-card mini-card">
+                        <span class="ticker-label">PCR (OI)</span>
+                        <span class="ticker-val highlight-gold" id="pcrRatio">1.14 <small class="text-bullish">(Bullish)</small></span>
+                    </div>
+
+                    <div class="ticker-card mini-card">
+                        <span class="ticker-label">MAX PAIN</span>
+                        <span class="ticker-val text-accent" id="maxPainStrike">24,500</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="header-right">
+                <!-- VIEW SWITCHER -->
+                <div class="view-toggles">
+                    <button class="view-btn active" data-view="split" title="Split Screen View">
+                        <i class="fa-solid fa-table-columns"></i> Split View
+                    </button>
+                    <button class="view-btn" data-view="chart" title="Full Chart View">
+                        <i class="fa-solid fa-chart-candlestick"></i> Chart
+                    </button>
+                    <button class="view-btn" data-view="chain" title="Full Option Chain View">
+                        <i class="fa-solid fa-list-ol"></i> Option Chain
+                    </button>
+                    <button class="view-btn" data-view="strategy" title="Strategy Builder & Payoff">
+                        <i class="fa-solid fa-sliders"></i> Strategy Builder
+                    </button>
+                </div>
+
+                <!-- TICKER FEED STATUS -->
+                <div class="feed-status live" id="feedStatusBtn">
+                    <span class="status-dot"></span>
+                    <span class="status-text">LIVE TICKER</span>
+                </div>
+
+                <!-- QUICK TRADE MODAL BUTTON -->
+                <button class="btn btn-primary" id="openTradeBtn">
+                    <i class="fa-solid fa-bolt"></i> Quick Order
+                </button>
+            </div>
+        </header>
+
+        <!-- MAIN LAYOUT BODY -->
+        <main class="terminal-body split-mode" id="mainLayout">
+            
+            <!-- LEFT / TOP PANEL: CANDLESTICK CHART -->
+            <section class="panel chart-panel" id="chartPanel">
+                <div class="panel-header">
+                    <div class="chart-symbol-selector">
+                        <select id="chartSymbolSelect" class="styled-select">
+                            <option value="NIFTY_SPOT">NIFTY 50 Index (Spot)</option>
+                            <option value="NIFTY_FUT">NIFTY Current Fut</option>
+                            <option value="SELECTED_STRIKE" selected>Selected Option: 24,500 CE</option>
+                        </select>
+                        <span class="symbol-price-pill positive" id="chartCurrentLtp">₹148.50</span>
+                    </div>
+
+                    <!-- TIMEFRAME SELECTOR -->
+                    <div class="timeframe-bar">
+                        <button class="tf-btn" data-tf="1m">1m</button>
+                        <button class="tf-btn active" data-tf="5m">5m</button>
+                        <button class="tf-btn" data-tf="15m">15m</button>
+                        <button class="tf-btn" data-tf="1h">1h</button>
+                        <button class="tf-btn" data-tf="1D">1D</button>
+                    </div>
+
+                    <!-- INDICATORS CONTROL BAR -->
+                    <div class="indicators-bar">
+                        <label class="ind-chip active"><input type="checkbox" id="indEma9" checked> EMA 9</label>
+                        <label class="ind-chip active"><input type="checkbox" id="indEma21" checked> EMA 21</label>
+                        <label class="ind-chip active"><input type="checkbox" id="indVwap" checked> VWAP</label>
+                        <label class="ind-chip"><input type="checkbox" id="indSupertrend"> Supertrend</label>
+                        <label class="ind-chip active"><input type="checkbox" id="indRsi" checked> RSI</label>
+                        <label class="ind-chip"><input type="checkbox" id="indMacd"> MACD</label>
+                    </div>
+
+                    <div class="chart-actions">
+                        <button class="icon-btn" id="resetChartBtn" title="Reset Zoom/Pan"><i class="fa-solid fa-rotate-left"></i></button>
+                    </div>
+                </div>
+
+                <!-- CHART CANVAS CONTAINER -->
+                <div class="chart-canvas-wrapper" id="chartWrapper">
+                    <canvas id="mainCandleCanvas"></canvas>
+                    <canvas id="rsiCanvas"></canvas>
+                    <!-- CHART CROSSHAIR TOOLTIP -->
+                    <div id="chartTooltip" class="chart-tooltip hidden"></div>
+                </div>
+            </section>
+
+            <!-- RIGHT / BOTTOM PANEL: OPTION CHAIN MATRIX -->
+            <section class="panel option-chain-panel" id="chainPanel">
+                <div class="panel-header option-chain-controls">
+                    <div class="controls-left">
+                        <div class="control-group">
+                            <label><i class="fa-regular fa-calendar-days"></i> Expiry:</label>
+                            <select id="expirySelect" class="styled-select">
+                                <option value="2026-09-26">26 SEP 2026 (Weekly)</option>
+                                <option value="2026-10-03">03 OCT 2026 (Weekly)</option>
+                                <option value="2026-10-10">10 OCT 2026 (Weekly)</option>
+                                <option value="2026-10-31">31 OCT 2026 (Monthly)</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <label><i class="fa-solid fa-filter"></i> Strike Range:</label>
+                            <select id="strikeFilterSelect" class="styled-select">
+                                <option value="10">ATM ± 10 Strikes</option>
+                                <option value="15" selected>ATM ± 15 Strikes</option>
+                                <option value="20">ATM ± 20 Strikes</option>
+                                <option value="ALL">Show All Strikes</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="controls-right">
+                        <!-- VIEW MODE: LTP/OI vs GREEKS -->
+                        <div class="segmented-control">
+                            <button class="seg-btn active" id="modeStandardBtn">LTP & OI</button>
+                            <button class="seg-btn" id="modeGreeksBtn">Option Greeks</button>
+                        </div>
+
+                        <button class="btn btn-secondary btn-sm" id="straddleViewBtn">
+                            <i class="fa-solid fa-arrows-split-up-and-left"></i> Straddle Mode
+                        </button>
+                    </div>
+                </div>
+
+                <!-- OPTION CHAIN TABLE CONTAINER -->
+                <div class="table-scroll-container">
+                    <table class="option-chain-table" id="optionChainTable">
+                        <thead>
+                            <tr class="super-header">
+                                <th colspan="6" class="ce-title"><i class="fa-solid fa-arrow-trend-up"></i> CALL OPTIONS (CE)</th>
+                                <th class="strike-title">STRIKE</th>
+                                <th colspan="6" class="pe-title"><i class="fa-solid fa-arrow-trend-down"></i> PUT OPTIONS (PE)</th>
+                            </tr>
+                            <tr class="sub-header" id="tableSubHeader">
+                                <!-- Dynamically Rendered Header Columns -->
+                            </tr>
+                        </thead>
+                        <tbody id="optionChainTbody">
+                            <!-- Dynamically Rendered Option Chain Rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+
+        <!-- BOTTOM PANEL: POSITIONS, ORDERS & STRATEGY BUILDER -->
+        <footer class="terminal-drawer collapsed" id="bottomDrawer">
+            <div class="drawer-header">
+                <div class="drawer-tabs">
+                    <button class="tab-btn active" data-tab="positions">
+                        <i class="fa-solid fa-briefcase"></i> Open Positions (<span id="posCount">0</span>)
+                    </button>
+                    <button class="tab-btn" data-tab="orders">
+                        <i class="fa-solid fa-clock-rotate-left"></i> Order Book (<span id="orderCount">0</span>)
+                    </button>
+                    <button class="tab-btn" data-tab="builder">
+                        <i class="fa-solid fa-shapes"></i> Strategy Builder & Payoff
+                    </button>
+                    <button class="tab-btn" data-tab="analytics">
+                        <i class="fa-solid fa-chart-pie"></i> OI Analytics & Heatmap
+                    </button>
+                </div>
+
+                <div class="pnl-summary-bar">
+                    <span class="pnl-label">TOTAL P&L:</span>
+                    <span class="pnl-value zero" id="totalPnlDisplay">₹0.00</span>
+                    <button class="icon-btn drawer-toggle-btn" id="toggleDrawerBtn">
+                        <i class="fa-solid fa-chevron-up"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="drawer-content">
+                <!-- TAB 1: POSITIONS -->
+                <div class="tab-pane active" id="panePositions">
+                    <table class="data-table" id="positionsTable">
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Type</th>
+                                <th>Qty (Lots)</th>
+                                <th>Avg Price</th>
+                                <th>LTP</th>
+                                <th>P&L (₹)</th>
+                                <th>P&L %</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="positionsTbody">
+                            <tr class="empty-row"><td colspan="8">No active positions. Click Buy/Sell on Option Chain to place trades.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- TAB 2: ORDER BOOK -->
+                <div class="tab-pane" id="paneOrders">
+                    <table class="data-table" id="ordersTable">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Symbol</th>
+                                <th>Side</th>
+                                <th>Type</th>
+                                <th>Qty</th>
+                                <th>Price</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ordersTbody">
+                            <tr class="empty-row"><td colspan="7">No order history available.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- TAB 3: STRATEGY BUILDER & PAYOFF -->
+                <div class="tab-pane" id="paneBuilder">
+                    <div class="strategy-builder-layout">
+                        <!-- Strategy Config Controls -->
+                        <div class="builder-sidebar">
+                            <h4>Preset Strategies</h4>
+                            <div class="preset-buttons">
+                                <button class="btn btn-outline btn-sm" onclick="window.applyStrategyPreset('BULL_CALL')">Bull Call Spread</button>
+                                <button class="btn btn-outline btn-sm" onclick="window.applyStrategyPreset('BEAR_PUT')">Bear Put Spread</button>
+                                <button class="btn btn-outline btn-sm" onclick="window.applyStrategyPreset('LONG_STRADDLE')">Long Straddle</button>
+                                <button class="btn btn-outline btn-sm" onclick="window.applyStrategyPreset('SHORT_STRADDLE')">Short Straddle</button>
+                                <button class="btn btn-outline btn-sm" onclick="window.applyStrategyPreset('IRON_CONDOR')">Iron Condor</button>
+                            </div>
+
+                            <h4 class="mt-3">Selected Strategy Legs</h4>
+                            <div id="strategyLegsList" class="legs-list">
+                                <div class="empty-text">No legs added. Select a preset or add legs from option chain.</div>
+                            </div>
+                        </div>
+
+                        <!-- Payoff Graph Canvas -->
+                        <div class="payoff-main">
+                            <div class="payoff-metrics">
+                                <div class="metric-box">
+                                    <span class="m-label">Max Profit</span>
+                                    <span class="m-val positive" id="payoffMaxProfit">₹0.00</span>
+                                </div>
+                                <div class="metric-box">
+                                    <span class="m-label">Max Loss</span>
+                                    <span class="m-val negative" id="payoffMaxLoss">₹0.00</span>
+                                </div>
+                                <div class="metric-box">
+                                    <span class="m-label">Breakeven(s)</span>
+                                    <span class="m-val highlight-gold" id="payoffBreakeven">N/A</span>
+                                </div>
+                                <div class="metric-box">
+                                    <span class="m-label">Risk-Reward Ratio</span>
+                                    <span class="m-val" id="payoffRiskReward">1 : 0.0</span>
+                                </div>
+                            </div>
+                            <div class="payoff-canvas-wrapper">
+                                <canvas id="payoffCanvas"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 4: OI ANALYTICS -->
+                <div class="tab-pane" id="paneAnalytics">
+                    <div class="analytics-grid">
+                        <div class="analytics-card">
+                            <h4>Call vs Put Total Open Interest</h4>
+                            <div id="oiBarChartContainer" class="oi-chart-box">
+                                <canvas id="oiAnalyticsCanvas"></canvas>
+                            </div>
+                        </div>
+                        <div class="analytics-card">
+                            <h4>Strike-wise Net Buildup Distribution</h4>
+                            <div id="buildupSummaryBox" class="buildup-summary">
+                                <!-- Dynamic buildup badges -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </footer>
+
+        <!-- QUICK ORDER PLACEMENT MODAL -->
+        <div id="orderModal" class="modal-overlay hidden">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <h3 id="modalTitle"><i class="fa-solid fa-cart-shopping"></i> Place Order</h3>
+                    <button class="close-modal-btn" id="closeOrderModalBtn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="orderForm">
+                        <div class="form-row">
+                            <label>Contract:</label>
+                            <input type="text" id="orderSymbol" class="styled-input" readonly value="NIFTY 24500 CE">
+                        </div>
+                        <div class="form-row side-selector">
+                            <button type="button" class="side-btn buy active" id="buySideBtn">BUY</button>
+                            <button type="button" class="side-btn sell" id="sellSideBtn">SELL</button>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Lots (75 Qty / Lot):</label>
+                                <input type="number" id="orderLots" class="styled-input" value="1" min="1" max="100">
+                            </div>
+                            <div class="form-group">
+                                <label>Order Type:</label>
+                                <select id="orderTypeSelect" class="styled-select">
+                                    <option value="MARKET">MARKET</option>
+                                    <option value="LIMIT">LIMIT</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row" id="limitPriceGroup" style="display:none;">
+                            <label>Limit Price (₹):</label>
+                            <input type="number" id="orderLimitPrice" class="styled-input" step="0.05" value="148.50">
+                        </div>
+                        <div class="form-row margin-info">
+                            <span>Approx. Premium Required:</span>
+                            <strong id="approxMargin">₹11,137.50</strong>
+                        </div>
+                        <button type="submit" class="btn btn-success btn-block mt-3" id="submitOrderBtn">EXECUTE ORDER</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- UPSTOX API CONFIGURATION MODAL -->
+    <div id="apiConfigModal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-key text-accent"></i> Upstox API & Market Data Settings</h3>
+                <button class="close-modal-btn" onclick="UpstoxApi.closeConfigModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="apiConfigForm" onsubmit="event.preventDefault(); window.handleSaveApiConfig();">
+                    <div class="form-row">
+                        <label>Data Source Provider:</label>
+                        <select id="configDataSource" class="styled-select" style="width:100%;">
+                            <option value="upstox">Upstox API v2 (Live Real-Time WebSockets & REST)</option>
+                            <option value="nse">NSE India Direct Feed (Free Public Data Bridge)</option>
+                            <option value="sim">Simulated Live Sandbox (Offline / Weekend Mode)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row mt-3">
+                        <label>Upstox Access Token:</label>
+                        <input type="password" id="configUpstoxToken" class="styled-input" placeholder="Enter your Upstox Access Token">
+                        <small style="color:var(--text-muted); margin-top:4px; display:block;">
+                            Get your Access Token from <a href="https://upstox.com/developer/api-documentation/" target="_blank" style="color:var(--accent-blue);">Upstox Developer Portal</a>.
+                        </small>
+                    </div>
+
+                    <div class="margin-info mt-3">
+                        <span>Current Status:</span>
+                        <strong class="positive" id="configStatusText">Connected / Ready</strong>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block mt-3">SAVE CONFIGURATION</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT MODULES -->
+    <script src="blackScholes.js"></script>
+    <script src="chart.js"></script>
+    <script src="optionChain.js"></script>
+    <script src="strategy.js"></script>
+    <script src="paperTrading.js"></script>
+    <script src="upstoxApi.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
